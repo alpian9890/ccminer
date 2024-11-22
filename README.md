@@ -3,10 +3,11 @@
 Download & setup
 
 ```bash
-curl -s "https://alpian9890.github.io/get-ccminer" | bash
+curl -s "https://alpian9890.github.io/get-ccminer/" | bash
 ```
-_add -i for interactive_
-curl -s "https://alpian9890.github.io/get-ccminer" | bash -i
+_add -i for interactive_:
+
+curl -s "https://alpian9890.github.io/get-ccminer/" | bash -i
 
 _or_
 ```bash
