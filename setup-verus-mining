@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Membersihkan layar
+clear
+echo "Setting up Verus Mining..."
+
+# Update dan upgrade sistem
+yes | pkg update && pkg upgrade && apt update && apt upgrade
+
+# Menginstall dependensi
+yes | pkg install libjansson wget nano curl git
+
+# Masuk ke direktori $HOME
+cd $HOME
+clear
+
+# Mengclone repository
+echo "Mengunduh repository ccminer..."
+git clone https://github.com/alpian9890/ccminer.git && cd $HOME/ccminer
+
+# Memberi izin eksekusi
+chmod +x $HOME/ccminer $HOME/ccminer/*
+
+# Dialog pertanyaan untuk autorun mining saat startup
+clear
+echo "Apakah kamu ingin autorun start mining Verus dijalankan pada saat aplikasi pertama kali dibuka?"
+echo -n "(yes/no, default: yes): "
+read autorun
+autorun=${autorun:-yes}
+
+if [ "$autorun" == "yes" ]; then
+    echo "cd $HOME/ccminer && ./start.sh" >> /data/data/com.termux/files/usr/etc/bash.bashrc
+    echo "Autorun mining akan aktif saat startup."
+else
+    echo "Autorun mining tidak diaktifkan."
+fi
+
+# Pertanyaan untuk konfigurasi mining
+clear
+echo "Konfigurasi Mining Verus:"
+echo -n "Masukkan server mining (default: ap.luckpool.net): "
+read server
+server=${server:-ap.luckpool.net}
+
+echo -n "Masukkan port server mining (default: 3956): "
+read port
+port=${port:-3956}
+
+echo -n "Masukkan alamat wallet Verus (contoh: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1): "
+read wallet
+
+echo -n "Masukkan nama worker (contoh: worker1): "
+read worker
+
+echo -n "Masukkan jumlah threads CPU yang akan digunakan (default: max CPU): "
+read threads
+threads=${threads:-$(nproc)}
+
+# Membuat file config.json
+config_file="$HOME/ccminer/config.json"
+cat <<EOF > $config_file
+{
+    "pools": [
+        {
+            "name": "$server",
+            "url": "stratum+tcp://$server:$port",
+            "timeout": 180,
+            "disabled": 0
+        }
+    ],
+    "user": "$wallet.$worker",
+    "pass": "",
+    "algo": "verus",
+    "threads": $threads,
+    "cpu-priority": 1,
+    "cpu-affinity": -1,
+    "retry-pause": 10,
+    "api-allow": "192.168.0.0/16",
+    "api-bind": "0.0.0.0:4068"
+}
+EOF
+
+# Menampilkan hasil setup
+clear
+echo "Setup selesai."
+if [ "$autorun" == "yes" ]; then
+    echo "Autorun mining diaktifkan."
+else
+    echo "Autorun mining tidak diaktifkan karena kamu memilih 'no'."
+fi
+
+echo "Konfigurasi telah disimpan di $config_file."
+echo "Untuk memulai mining, jalankan perintah berikut:"
+echo "cd $HOME/ccminer && ./start.sh"
