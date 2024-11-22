@@ -5,7 +5,7 @@ echo "Settingup..."
 
 # Install required packages
 echo "Installing required packages..."
-pkg install -y curl git libjansson wget nano
+yes | pkg install curl git libjansson wget nano
 
 # Update and upgrade packages
 echo "Updating packages..."
