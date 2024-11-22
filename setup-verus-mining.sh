@@ -1,160 +1,139 @@
 #!/bin/bash
 
-clear
-echo "Settingup..."
-
-# Install required packages
-echo "Installing required packages..."
-yes | pkg install curl git libjansson wget nano proot resolv-conf
-
-# Update and upgrade packages
-echo "Updating packages..."
-yes | pkg update && pkg upgrade && apt update && apt upgrade
-
-# Masuk ke direktori $HOME
-cd $HOME || { echo "Gagal masuk ke direktori $HOME, keluar."; exit 1; }
-clear
-
-# Clone repository
-echo "Mengunduh repository ccminer..."
-if [ -d "$HOME/ccminer" ]; then
-    echo "Folder ccminer sudah ada. Menghapus folder lama..."
-    rm -rf "$HOME/ccminer"
-fi
-
-git clone https://github.com/alpian9890/ccminer.git
-if [ $? -ne 0 ]; then
-    echo "Gagal mengunduh repository. Silakan periksa koneksi internet Anda."
-    exit 1
-fi
-
-# Masuk ke direktori ccminer
-cd "$HOME/ccminer" || { echo "Gagal masuk ke direktori ccminer, keluar."; exit 1; }
-
-
-# Set permissions
-echo "Mengatur permissions..."
-# Memberi izin eksekusi
-chmod +x "$HOME/ccminer" "$HOME/ccminer/"* || { echo "Gagal memberi izin eksekusi, keluar."; exit 1; }
-
-# Function to get user input
-get_input() {
-    local prompt="$1"
-    local value=""
-    while [ -z "$value" ]; do
-        echo -n "$prompt: "
-        read value
-        if [ -z "$value" ]; then
-            echo "Input tidak boleh kosong. Silakan coba lagi."
+# Fungsi untuk memastikan dependensi terinstal
+function install_dependencies() {
+    echo "Memeriksa dan menginstal dependensi..."
+    packages=("libjansson" "wget" "nano" "curl" "git")
+    for package in "${packages[@]}"; do
+        if ! dpkg -l | grep -q "^ii  $package "; then
+            echo "Menginstal $package..."
+            yes | pkg install "$package" || { echo "Gagal menginstal $package, keluar."; exit 1; }
         fi
     done
-    echo "$value"
 }
 
-# Function for yes/no questions
-get_yes_no() {
+# Fungsi untuk meminta input dengan validasi
+function prompt_input() {
     local prompt="$1"
-    local answer=""
+    local input
     while true; do
-        echo -n "$prompt [y/n]: "
-        read answer
-        case ${answer,,} in
-            "y"|"yes") return 0 ;;
-            "n"|"no") return 1 ;;
-            *) echo "Mohon jawab dengan 'y' atau 'n'" ;;
-        esac
+        echo -n "$prompt: "
+        read input
+        if [ -n "$input" ]; then
+            echo "$input"
+            break
+        else
+            echo "Input tidak boleh kosong, silakan coba lagi."
+        fi
     done
 }
 
-# Ask for autorun configuration
-echo "Konfigurasi Autorun"
-echo "==================="
-if get_yes_no "Apakah kamu ingin autorun start mining verush dijalankan pada saat aplikasi pertama kali dibuka?"; then
-    echo "cd $HOME/ccminer/&&./start.sh" >> /data/data/com.termux/files/usr/etc/bash.bashrc
-    autorun_status="yes"
-else
-    autorun_status="no"
-fi
+# Fungsi untuk membuat konfigurasi file
+function create_config_file() {
+    local server="$1"
+    local port="$2"
+    local wallet="$3"
+    local worker="$4"
+    local threads="$5"
+    local config_path="$HOME/ccminer/config.json"
 
-# Get mining configuration from user
-echo ""
-echo "Konfigurasi Mining"
-echo "================="
-server_url=$(get_input "Masukkan alamat server/url (contoh: ap.luckpool.net)")
-port=$(get_input "Masukkan port (contoh: 3956)")
-wallet_address=$(get_input "Masukkan alamat wallet Veruscoin")
-worker_name=$(get_input "Masukkan nama worker")
-
-# Get CPU threads
-total_cores=$(nproc)
-while true; do
-    echo -n "Masukkan jumlah CPU threads yang akan digunakan (maksimum: $total_cores): "
-    read cpu_threads
-    if [ -z "$cpu_threads" ]; then
-        echo "Input tidak boleh kosong."
-        continue
-    fi
-    if ! [[ "$cpu_threads" =~ ^[0-9]+$ ]]; then
-        echo "Mohon masukkan angka yang valid."
-        continue
-    fi
-    if [ "$cpu_threads" -gt "$total_cores" ]; then
-        echo "Jumlah threads tidak boleh melebihi jumlah CPU cores ($total_cores)"
-        continue
-    fi
-    if [ "$cpu_threads" -lt 1 ]; then
-        echo "Jumlah threads minimal 1"
-        continue
-    fi
-    break
-done
-
-# Create config.json with user confirmation
-echo ""
-echo "Konfirmasi Konfigurasi:"
-echo "======================"
-echo "Server URL: $server_url"
-echo "Port: $port"
-echo "Wallet Address: $wallet_address"
-echo "Worker Name: $worker_name"
-echo "CPU Threads: $cpu_threads"
-echo ""
-
-if get_yes_no "Apakah konfigurasi di atas sudah benar?"; then
-    # Create config.json
-    cat > config.json << EOL
+    echo "Membuat file konfigurasi di $config_path..."
+    cat <<EOF > "$config_path"
 {
     "pools": [
         {
-            "name": "${server_url}",
-            "url": "stratum+tcp://${server_url}:${port}",
+            "name": "$server",
+            "url": "stratum+tcp://$server:$port",
             "timeout": 180,
-            "disabled": 1
+            "disabled": 0
         }
     ],
-    "user": "${wallet_address}.${worker_name}",
+    "user": "$wallet.$worker",
     "pass": "",
     "algo": "verus",
-    "threads": ${cpu_threads},
+    "threads": $threads,
     "cpu-priority": 1,
     "cpu-affinity": -1,
     "retry-pause": 10,
     "api-allow": "192.168.0.0/16",
     "api-bind": "0.0.0.0:4068"
 }
-EOL
+EOF
+}
 
-    echo ""
-    echo "Setup selesai!"
-    echo "Autorun mining: $autorun_status"
+# Bersihkan layar
+clear
+echo "Setting up Verus Mining..."
 
-    if [ "$autorun_status" = "no" ]; then
-        echo "Karena kamu memilih no, mining tidak akan autorun saat startup."
-        echo "Untuk memulai mining manual, jalankan: cd $HOME/ccminer && ./start.sh"
-    else
-        echo "Mining akan otomatis berjalan saat startup."
-    fi
-else
-    echo "Setup dibatalkan. Silakan jalankan script kembali untuk mengulang konfigurasi."
-    exit 1
+# Memastikan dependensi terinstal
+install_dependencies
+
+# Update dan upgrade sistem
+echo "Mengupdate sistem..."
+yes | pkg update && pkg upgrade && apt update && apt upgrade || { echo "Gagal mengupdate sistem, keluar."; exit 1; }
+
+# Masuk ke direktori $HOME
+cd $HOME || { echo "Gagal masuk ke direktori $HOME, keluar."; exit 1; }
+
+# Clone repository
+echo "Mengunduh repository ccminer..."
+if [ ! -d "$HOME/ccminer" ]; then
+    git clone https://github.com/alpian9890/ccminer.git || { echo "Gagal mengclone repository, keluar."; exit 1; }
 fi
+
+# Masuk ke direktori ccminer
+cd "$HOME/ccminer" || { echo "Gagal masuk ke direktori ccminer, keluar."; exit 1; }
+
+# Memberi izin eksekusi
+chmod +x "$HOME/ccminer" "$HOME/ccminer/"* || { echo "Gagal memberi izin eksekusi, keluar."; exit 1; }
+
+# Dialog autorun
+while true; do
+    echo "Apakah kamu ingin autorun mining dijalankan pada saat aplikasi pertama kali dibuka? (yes/no)"
+    echo -n "Jawaban (yes/no): "
+    read autorun
+    if [[ "$autorun" == "yes" || "$autorun" == "no" ]]; then
+        break
+    else
+        echo "Input tidak valid, silakan jawab dengan 'yes' atau 'no'."
+    fi
+done
+
+# Konfigurasi autorun
+if [ "$autorun" == "yes" ]; then
+    echo "cd $HOME/ccminer && ./start.sh" >> /data/data/com.termux/files/usr/etc/bash.bashrc
+    echo "Autorun mining akan diaktifkan saat startup."
+else
+    echo "Autorun mining tidak diaktifkan."
+fi
+
+# Konfigurasi mining
+server=$(prompt_input "Masukkan server mining (contoh: ap.luckpool.net)")
+port=$(prompt_input "Masukkan port server mining (contoh: 3956)")
+wallet=$(prompt_input "Masukkan alamat wallet Verus (contoh: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1)")
+worker=$(prompt_input "Masukkan nama worker (contoh: worker1)")
+
+while true; do
+    threads=$(prompt_input "Masukkan jumlah threads CPU yang akan digunakan (contoh: 8)")
+    if [[ "$threads" =~ ^[0-9]+$ ]]; then
+        break
+    else
+        echo "Jumlah threads harus berupa angka, silakan coba lagi."
+    fi
+done
+
+# Membuat file konfigurasi
+create_config_file "$server" "$port" "$wallet" "$worker" "$threads"
+
+# Menampilkan hasil setup
+clear
+echo "Setup selesai."
+if [ "$autorun" == "yes" ]; then
+    echo "Autorun mining diaktifkan."
+else
+    echo "Autorun mining tidak diaktifkan karena kamu memilih 'no'."
+fi
+
+echo "Konfigurasi telah disimpan di $HOME/ccminer/config.json."
+echo "Untuk memulai mining, jalankan perintah berikut:"
+echo "cd $HOME/ccminer && ./start.sh"
