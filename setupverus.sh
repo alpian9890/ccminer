@@ -6,8 +6,10 @@ echo "Settingup..."
 # Update and upgrade packages
 yes | pkg update && pkg upgrade && apt update && apt upgrade
 
+clear
+
 # Install required packages
-yes | pkg install libjansson wget nano
+yes | pkg install git curl libjansson wget nano
 
 # Change to home directory
 cd $HOME
