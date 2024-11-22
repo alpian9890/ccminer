@@ -7,7 +7,7 @@ mkdir $HOME/ccminer && cd $HOME/ccminer
 #wget https://raw.githubusercontent.com/Darktron/pre-compiled/generic/config.json
 #wget https://raw.githubusercontent.com/Darktron/pre-compiled/generic/start.sh
 
-
+git clone https://github.com/alpian9890/ccminer.git
 
 chmod +x $HOME/ccminer $HOME/ccminer/*
 #nano $HOME/ccminer/config.json
