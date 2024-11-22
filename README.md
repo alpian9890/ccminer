@@ -1,0 +1,2 @@
+# ccminer
+ccminer-termux
