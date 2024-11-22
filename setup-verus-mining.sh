@@ -18,7 +18,14 @@ git clone https://github.com/alpian9890/ccminer.git && cd $HOME/ccminer
 
 # Set permissions
 chmod +x $HOME/ccminer $HOME/ccminer/*
-
+clear
+echo "cloning ccminer done!"
+echo " "
+echo " "
+ls
+echo " "
+echo " "
+echo " "
 # Ask for autorun configuration
 echo -n "Apakah kamu ingin autorun start mining verush dijalankan pada saat aplikasi pertama kali dibuka? (Y/n): "
 read autorun_choice
@@ -40,7 +47,7 @@ echo -n "Masukkan port (default: 3956): "
 read port
 port=${port:-3956}
 
-echo -n "Masukkan alamat wallet Veruscoin: (default: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1): "
+echo -n "Masukkan alamat wallet Veruscoin: (contoh: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1): "
 read wallet_address
 wallet_address=${wallet_address:-RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1}
 
@@ -49,7 +56,7 @@ read worker_name
 worker_name=${worker_name:-worker1}
 # Get CPU threads
 total_cores=$(nproc)
-echo -n "Masukkan jumlah CPU threads yang akan digunakan (default: $total_cores): "
+echo -n "Masukkan jumlah CPU threads yang akan digunakan (max: $total_cores): "
 read cpu_threads
 cpu_threads=${cpu_threads:-$total_cores}
 
