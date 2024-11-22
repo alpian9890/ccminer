@@ -1,0 +1,4 @@
+#!/bin/bash
+wget https://raw.githubusercontent.com/alpian9890/ccminer/refs/heads/main/setup-verus-mining.sh
+chmod +x setup-verus-mining.sh
+./setup-verus-mining.sh
