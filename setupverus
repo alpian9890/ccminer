@@ -1,0 +1,153 @@
+#!/bin/bash
+
+# Function untuk memastikan input tidak kosong
+get_input() {
+    local prompt="$1"
+    local default="$2"
+    local input=""
+    
+    while [ -z "$input" ]; do
+        echo -n "$prompt"
+        read input
+        if [ -n "$default" ] && [ -z "$input" ]; then
+            input="$default"
+            echo "Menggunakan nilai default: $default"
+        fi
+        
+        if [ -z "$input" ]; then
+            echo "Input tidak boleh kosong. Silakan coba lagi."
+        fi
+    done
+    echo "$input"
+}
+
+clear
+echo "Settingup..."
+echo "Menginstall paket yang diperlukan..."
+
+# Update dan upgrade packages
+echo "Mengupdate sistem..."
+yes | pkg update && pkg upgrade && apt update && apt upgrade
+
+# Install paket yang diperlukan
+echo "Menginstall dependencies..."
+yes | pkg install libjansson wget nano curl git proot resolv-conf
+
+# Pindah ke direktori home
+cd $HOME
+clear
+
+# Clone repository
+echo "Mengunduh repository ccminer..."
+if [ -d "$HOME/ccminer" ]; then
+    echo "Folder ccminer sudah ada. Menghapus folder lama..."
+    rm -rf "$HOME/ccminer"
+fi
+
+git clone https://github.com/alpian9890/ccminer.git
+if [ $? -ne 0 ]; then
+    echo "Gagal mengunduh repository. Silakan periksa koneksi internet Anda."
+    exit 1
+fi
+
+cd $HOME/ccminer
+
+# Set permissions
+echo "Mengatur permissions..."
+chmod +x $HOME/ccminer $HOME/ccminer/*
+
+# Dialog autorun
+while true; do
+    echo -n "Apakah kamu ingin autorun start mining verush dijalankan pada saat aplikasi pertama kali dibuka? (Y/n): "
+    read autorun_choice
+    autorun_choice=${autorun_choice:-Y}
+    
+    case ${autorun_choice^^} in
+        Y|YES)
+            echo "cd $HOME/ccminer/&&./start.sh" >> /data/data/com.termux/files/usr/etc/bash.bashrc
+            autorun_status="yes"
+            break
+            ;;
+        N|NO)
+            autorun_status="no"
+            break
+            ;;
+        *)
+            echo "Pilihan tidak valid. Silakan masukkan Y atau N."
+            ;;
+    esac
+done
+
+# Konfigurasi mining
+echo -e "\n=== Konfigurasi Mining ==="
+echo "Silakan masukkan informasi yang diperlukan:"
+
+# Input server/url
+server_url=$(get_input "Masukkan alamat server/url (default: ap.luckpool.net): " "ap.luckpool.net")
+
+# Input port
+port=$(get_input "Masukkan port (default: 3956): " "3956")
+
+# Input wallet address
+while true; do
+    wallet_address=$(get_input "Masukkan alamat wallet Veruscoin: " "")
+    if [[ $wallet_address =~ ^R[a-zA-Z0-9]{33}$ ]]; then
+        break
+    else
+        echo "Format alamat wallet tidak valid. Alamat wallet harus dimulai dengan 'R' dan memiliki 34 karakter."
+    fi
+done
+
+# Input worker name
+worker_name=$(get_input "Masukkan nama worker: " "worker1")
+
+# Input CPU threads
+total_cores=$(nproc)
+while true; do
+    cpu_threads=$(get_input "Masukkan jumlah CPU threads yang akan digunakan (1-$total_cores, default: $total_cores): " "$total_cores")
+    if [[ "$cpu_threads" =~ ^[0-9]+$ ]] && [ "$cpu_threads" -ge 1 ] && [ "$cpu_threads" -le "$total_cores" ]; then
+        break
+    else
+        echo "Input tidak valid. Masukkan angka antara 1 dan $total_cores."
+    fi
+done
+
+# Membuat config.json
+echo "Membuat file konfigurasi..."
+cat > config.json << EOL
+{
+    "pools": [
+        {
+            "name": "${server_url}",
+            "url": "stratum+tcp://${server_url}:${port}",
+            "timeout": 180,
+            "disabled": 1
+        }
+    ],
+    "user": "${wallet_address}.${worker_name}",
+    "pass": "",
+    "algo": "verus",
+    "threads": ${cpu_threads},
+    "cpu-priority": 1,
+    "cpu-affinity": -1,
+    "retry-pause": 10,
+    "api-allow": "192.168.0.0/16",
+    "api-bind": "0.0.0.0:4068"
+}
+EOL
+
+# Pesan akhir
+echo -e "\n=== Setup Selesai ==="
+echo "File config.json telah dibuat dengan konfigurasi berikut:"
+echo "- Server: $server_url:$port"
+echo "- Wallet: $wallet_address"
+echo "- Worker: $worker_name"
+echo "- CPU Threads: $cpu_threads dari $total_cores"
+echo "- Autorun mining: $autorun_status"
+
+if [ "$autorun_status" = "no" ]; then
+    echo -e "\nKarena kamu memilih no, mining tidak akan autorun saat startup."
+    echo "Untuk memulai mining manual, jalankan: cd $HOME/ccminer && ./start.sh"
+fi
+
+echo -e "\nSetup selesai! Terimakasih telah menggunakan script ini."
