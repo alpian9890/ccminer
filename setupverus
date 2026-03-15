@@ -78,7 +78,12 @@ EOL
 install_packages() {
     echo "Mengupdate sistem..."
     if [ "$PLATFORM" = "termux" ]; then
-        yes | pkg update && yes | pkg upgrade
+        if [ -t 0 ]; then
+            pkg update
+            pkg upgrade
+        else
+            yes | pkg update && yes | pkg upgrade
+        fi
         echo "Menginstall dependencies..."
         yes | pkg install libjansson wget nano curl git proot resolv-conf
     else

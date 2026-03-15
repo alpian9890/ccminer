@@ -77,7 +77,12 @@ EOL
 
 install_packages() {
     if [ "$PLATFORM" = "termux" ]; then
-        yes | pkg update && yes | pkg upgrade
+        if [ -t 0 ]; then
+            pkg update
+            pkg upgrade
+        else
+            yes | pkg update && yes | pkg upgrade
+        fi
         yes | pkg install libjansson wget nano
     else
         if ! command -v apt-get >/dev/null 2>&1; then
