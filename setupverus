@@ -37,6 +37,44 @@ ensure_sudo() {
     fi
 }
 
+setup_systemd_service() {
+    if [ "$PLATFORM" = "termux" ]; then
+        return
+    fi
+    if ! command -v systemctl >/dev/null 2>&1 || [ ! -d /run/systemd/system ]; then
+        echo "Systemd tidak terdeteksi. Lewati setup service."
+        return
+    fi
+    ensure_sudo
+    RUN_USER="${SUDO_USER:-$(id -un)}"
+    RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
+    [ -n "$RUN_HOME" ] || RUN_HOME="$HOME"
+    SERVICE_PATH="/etc/systemd/system/ccminer.service"
+
+    $SUDO tee "$SERVICE_PATH" >/dev/null <<EOL
+[Unit]
+Description=ccminer miner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${RUN_USER}
+WorkingDirectory=${RUN_HOME}/ccminer
+Environment=TERM=xterm
+ExecStart=/bin/bash -lc 'cd ${RUN_HOME}/ccminer && ./start.sh'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+    $SUDO systemctl daemon-reload
+    $SUDO systemctl enable --now ccminer
+    echo "Service systemd ccminer aktif. Cek status: systemctl status ccminer"
+}
+
 install_packages() {
     echo "Mengupdate sistem..."
     if [ "$PLATFORM" = "termux" ]; then
@@ -215,6 +253,10 @@ echo "- Autorun mining: $autorun_status"
 if [ "$autorun_status" = "no" ]; then
     echo -e "\nKarena kamu memilih no, mining tidak akan autorun saat startup."
     echo "Untuk memulai mining manual, jalankan: cd $HOME/ccminer && ./start.sh"
+fi
+
+if [ "$PLATFORM" != "termux" ] && [ "$ARCH" = "x86_64" ]; then
+    setup_systemd_service
 fi
 
 echo -e "\nSetup selesai! Terimakasih telah menggunakan script ini."

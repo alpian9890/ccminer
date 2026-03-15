@@ -1,6 +1,6 @@
 # ccminer
 ### Get Started Now
-Script `setup-verus-mining.sh` dan `setupverus` sekarang mendeteksi platform (Termux/Ubuntu) dan menyesuaikan path serta dependency. Binary disimpan di `bin/` dan wrapper `ccminer` memilih arsitektur secara otomatis.
+Script `setup-verus-mining.sh` dan `setupverus` sekarang mendeteksi platform (Termux/Ubuntu) dan menyesuaikan path serta dependency. Binary disimpan di `bin/` dan wrapper `ccminer` memilih arsitektur secara otomatis. Untuk Linux x86_64, installer membuat service systemd `ccminer`.
 Download & setup
 
 ```bash
