@@ -1,13 +1,60 @@
 #!/bin/bash
+set -e
+
+# Deteksi platform (termux/ubuntu/linux)
+PLATFORM="linux"
+if [ -n "${TERMUX_VERSION:-}" ] || [ -d "/data/data/com.termux/files/usr" ]; then
+    PLATFORM="termux"
+elif [ -f /etc/os-release ] && grep -qiE 'ubuntu|debian' /etc/os-release; then
+    PLATFORM="ubuntu"
+fi
+
+if [ "$PLATFORM" = "termux" ]; then
+    BASHRC_FILE="/data/data/com.termux/files/usr/etc/bash.bashrc"
+else
+    BASHRC_FILE="$HOME/.bashrc"
+fi
+
+ensure_sudo() {
+    if [ "$(id -u)" -ne 0 ]; then
+        if command -v sudo >/dev/null 2>&1; then
+            SUDO="sudo"
+        else
+            echo "Perintah ini membutuhkan akses root. Jalankan sebagai root atau install sudo."
+            exit 1
+        fi
+    fi
+}
+
+install_packages() {
+    if [ "$PLATFORM" = "termux" ]; then
+        yes | pkg update && pkg upgrade
+        yes | pkg install libjansson wget nano
+    else
+        if ! command -v apt-get >/dev/null 2>&1; then
+            echo "apt-get tidak ditemukan. Script ini fokus untuk Ubuntu/Debian."
+            exit 1
+        fi
+        ensure_sudo
+        apt_cmd() {
+            if [ -n "$SUDO" ]; then
+                $SUDO env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+            else
+                env DEBIAN_FRONTEND=noninteractive apt-get "$@"
+            fi
+        }
+        apt_cmd update
+        apt_cmd upgrade -y
+        apt_cmd install -y libjansson4 wget nano
+    fi
+}
 
 clear
 echo "Settingup..."
+echo "Platform terdeteksi: $PLATFORM"
 
-# Update and upgrade packages
-yes | pkg update && pkg upgrade && apt update && apt upgrade
-
-# Install required packages
-yes | pkg install libjansson wget nano
+# Update, upgrade, dan install paket
+install_packages
 
 # Change to home directory
 cd $HOME
@@ -29,10 +76,14 @@ echo " "
 # Ask for autorun configuration
 echo -n "Apakah kamu ingin autorun start mining verush dijalankan pada saat aplikasi pertama kali dibuka? (Y/n): "
 read autorun_choice
+autorun_choice=${autorun_choice//$'\r'/}
 autorun_choice=${autorun_choice:-Y}  # Default to Y if Enter is pressed
 
 if [ "${autorun_choice^^}" = "Y" ]; then
-    echo "cd $HOME/ccminer/&&./start.sh" >> /data/data/com.termux/files/usr/etc/bash.bashrc
+    autorun_cmd="cd $HOME/ccminer && ./start.sh"
+    if ! grep -Fq "$autorun_cmd" "$BASHRC_FILE" 2>/dev/null; then
+        echo "$autorun_cmd" >> "$BASHRC_FILE"
+    fi
     autorun_status="yes"
 else
     autorun_status="no"
@@ -41,23 +92,28 @@ fi
 # Get mining configuration from user
 echo -n "Masukkan alamat server/url (default: ap.luckpool.net): "
 read server_url
+server_url=${server_url//$'\r'/}
 server_url=${server_url:-ap.luckpool.net}
 
 echo -n "Masukkan port (default: 3956): "
 read port
+port=${port//$'\r'/}
 port=${port:-3956}
 
 echo -n "Masukkan alamat wallet Veruscoin: (contoh: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1): "
 read wallet_address
+wallet_address=${wallet_address//$'\r'/}
 wallet_address=${wallet_address:-RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1}
 
 echo -n "Masukkan nama worker: (default: worker1): "
 read worker_name
+worker_name=${worker_name//$'\r'/}
 worker_name=${worker_name:-worker1}
 # Get CPU threads
 total_cores=$(nproc)
 echo -n "Masukkan jumlah CPU threads yang akan digunakan (max: $total_cores): "
 read cpu_threads
+cpu_threads=${cpu_threads//$'\r'/}
 cpu_threads=${cpu_threads:-$total_cores}
 
 # Create config.json
