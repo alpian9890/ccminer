@@ -64,7 +64,11 @@ clear
 git clone https://github.com/alpian9890/ccminer.git && cd $HOME/ccminer
 
 # Set permissions
-chmod +x $HOME/ccminer $HOME/ccminer/*
+chmod +x "$HOME/ccminer" "$HOME/ccminer/ccminer" "$HOME/ccminer/start.sh" 2>/dev/null || true
+chmod +x "$HOME/ccminer/setupverus" "$HOME/ccminer/setup-verus-mining.sh" 2>/dev/null || true
+if [ -d "$HOME/ccminer/bin" ]; then
+    find "$HOME/ccminer/bin" -type f -name ccminer -exec chmod +x {} + 2>/dev/null || true
+fi
 clear
 echo "cloning ccminer done!"
 echo " "
