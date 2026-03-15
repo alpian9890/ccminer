@@ -9,6 +9,17 @@ elif [ -f /etc/os-release ] && grep -qiE 'ubuntu|debian' /etc/os-release; then
     PLATFORM="ubuntu"
 fi
 
+ARCH="$(uname -m)"
+echo "Arsitektur terdeteksi: $ARCH"
+case "${PLATFORM}:${ARCH}" in
+    termux:aarch64|termux:arm64) ;;
+    ubuntu:x86_64|ubuntu:amd64|linux:x86_64|linux:amd64) ;;
+    *)
+        echo "Arsitektur tidak didukung untuk platform ini."
+        exit 1
+        ;;
+esac
+
 if [ "$PLATFORM" = "termux" ]; then
     BASHRC_FILE="/data/data/com.termux/files/usr/etc/bash.bashrc"
 else
