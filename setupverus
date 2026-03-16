@@ -231,11 +231,11 @@ cat > config.json << EOL
             "name": "${server_url}",
             "url": "stratum+tcp://${server_url}:${port}",
             "timeout": 180,
-            "disabled": 1
+            "disabled": 0,
+            "user": "${wallet_address}.${worker_name}",
+            "pass": ""
         }
     ],
-    "user": "${wallet_address}.${worker_name}",
-    "pass": "",
     "algo": "verus",
     "threads": ${cpu_threads},
     "cpu-priority": 1,
