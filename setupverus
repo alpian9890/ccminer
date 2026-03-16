@@ -192,11 +192,26 @@ done
 echo -e "\n=== Konfigurasi Mining ==="
 echo "Silakan masukkan informasi yang diperlukan:"
 
+# Pilih pool
+echo -e "\n=== Pilih Pool ==="
+echo "1) Luckpool (ap.luckpool.net:3956)"
+echo "2) Vipor (sg.vipor.net:5040)"
+pool_choice=$(get_input "Pilih pool (1/2, default: 1): " "1")
+if [ "$pool_choice" = "2" ]; then
+    server_url_default="sg.vipor.net"
+    port_default="5040"
+    pass_default=""
+else
+    server_url_default="ap.luckpool.net"
+    port_default="3956"
+    pass_default="x"
+fi
+
 # Input server/url
-server_url=$(get_input "Masukkan alamat server/url (default: ap.luckpool.net): " "ap.luckpool.net")
+server_url=$(get_input "Masukkan alamat server/url (default: $server_url_default): " "$server_url_default")
 
 # Input port
-port=$(get_input "Masukkan port (default: 3956): " "3956")
+port=$(get_input "Masukkan port (default: $port_default): " "$port_default")
 
 # Input wallet address
 while true; do
@@ -233,7 +248,7 @@ cat > config.json << EOL
             "timeout": 180,
             "disabled": 0,
             "user": "${wallet_address}.${worker_name}",
-            "pass": ""
+            "pass": "${pass_default}"
         }
     ],
     "algo": "verus",

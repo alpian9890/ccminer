@@ -148,15 +148,33 @@ else
 fi
 
 # Get mining configuration from user
-echo -n "Masukkan alamat server/url (default: ap.luckpool.net): "
+echo "Pilih pool:"
+echo "1) Luckpool (ap.luckpool.net:3956)"
+echo "2) Vipor (sg.vipor.net:5040)"
+echo -n "Pilih pool (1/2, default: 1): "
+read pool_choice
+pool_choice=${pool_choice//$'\r'/}
+pool_choice=${pool_choice:-1}
+
+if [ "$pool_choice" = "2" ]; then
+    server_url_default="sg.vipor.net"
+    port_default="5040"
+    pass_default=""
+else
+    server_url_default="ap.luckpool.net"
+    port_default="3956"
+    pass_default="x"
+fi
+
+echo -n "Masukkan alamat server/url (default: ${server_url_default}): "
 read server_url
 server_url=${server_url//$'\r'/}
-server_url=${server_url:-ap.luckpool.net}
+server_url=${server_url:-$server_url_default}
 
-echo -n "Masukkan port (default: 3956): "
+echo -n "Masukkan port (default: ${port_default}): "
 read port
 port=${port//$'\r'/}
-port=${port:-3956}
+port=${port:-$port_default}
 
 echo -n "Masukkan alamat wallet Veruscoin: (contoh: RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1): "
 read wallet_address
@@ -184,7 +202,7 @@ cat > config.json << EOL
             "timeout": 180,
             "disabled": 0,
             "user": "${wallet_address}.${worker_name}",
-            "pass": ""
+            "pass": "${pass_default}"
         }
     ],
     "algo": "verus",

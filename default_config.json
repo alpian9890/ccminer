@@ -6,7 +6,7 @@
             "timeout": 180,
             "disabled": 0,
             "user": "RGJS61iPSNMhrkfqT9SWX6cjLqzCPLQSW1.ccminer",
-            "pass": ""
+            "pass": "x"
         }],
     "algo": "verus",
     "threads": 8,
